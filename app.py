@@ -46,51 +46,35 @@ h1,h2,h3 {
 
 
 .metric-card {
-
     background:#111827;
-
     padding:18px;
-
     border-radius:12px;
-
     border:1px solid #1e40af;
-
 }
 
 
 .metric-title {
-
     color:#94a3b8;
-
     font-size:14px;
-
 }
 
 
 .metric-value {
-
     color:#38bdf8;
-
     font-size:30px;
-
     font-weight:bold;
-
 }
 
 
 .footer {
-
     text-align:center;
-
     color:#64748b;
-
 }
 
 </style>
 """,
 unsafe_allow_html=True
 )
-
 
 
 # ============================================================
@@ -108,21 +92,15 @@ st.subheader(
 st.divider()
 
 
-
 # ============================================================
 # STATUS CARDS
 # ============================================================
 
 cards = [
-
     ("SYSTEM STATUS","ONLINE"),
-
     ("COOLING MODE","PASSIVE"),
-
     ("PUMP","NONE"),
-
     ("MISSION TIME","T+001")
-
 ]
 
 
@@ -130,9 +108,7 @@ columns = st.columns(4)
 
 
 for col,card in zip(columns,cards):
-
     with col:
-
         st.markdown(
         f"""
         <div class="metric-card">
@@ -149,7 +125,6 @@ for col,card in zip(columns,cards):
         """,
         unsafe_allow_html=True
         )
-
 
 
 # ============================================================
@@ -191,7 +166,6 @@ fluid_volume = st.sidebar.slider(
     10.0,
     3.0
 )
-
 
 
 st.sidebar.divider()
@@ -283,42 +257,28 @@ radiator_efficiency = st.sidebar.slider(
 # ============================================================
 
 gravity = 9.81
+
 # ============================================================
 # COOLANT DATABASE
 # ============================================================
 
 if coolant_type == "Water":
-
     coolant_density = 997
-
     coolant_heat_capacity = 4186
-
     coolant_conductivity = 0.60
 
-
-
 elif coolant_type == "Water-Glycol":
-
     coolant_density = 1050
-
     coolant_heat_capacity = 3500
-
     coolant_conductivity = 0.40
 
-
-
 else:
-
     coolant_density = 850
-
     coolant_heat_capacity = 2200
-
     coolant_conductivity = 0.12
 
 
-
 # Gravity vector effect
-
 gravity = (
     9.81 *
     np.sin(
@@ -330,7 +290,6 @@ gravity = (
 
 thermal_expansion = 0.00021
 
-
 delta_T = max(
     fluid_temperature -
     ambient_temperature,
@@ -338,77 +297,64 @@ delta_T = max(
 )
 
 
-
 # Buoyancy velocity
-
 buoyancy_velocity = np.sqrt(
-
     gravity *
     thermal_expansion *
     delta_T *
     loop_height
-
 )
 
 
-
 # Reynolds number
-
 kinematic_viscosity = 1e-6
 
 
 Reynolds = (
-
     buoyancy_velocity *
     loop_height /
     kinematic_viscosity
-
 )
 
 
-
 # Nusselt approximation
-
 if Reynolds < 2300:
-
     Nusselt = (
         0.54 *
         Reynolds**0.25
     )
-
 else:
-
     Nusselt = (
         0.15 *
         Reynolds**0.33
     )
 
 
-
 # Heat transfer coefficient
-
 h = (
-
     Nusselt *
     thermal_conductivity /
     loop_height
-
 )
 
 
-
-# Cooling capacity
-# Thermal mass
-
+# Cooling capacity / Thermal mass
 thermal_mass = (
-
     fluid_volume *
     fluid_density *
     specific_heat
-
 )
 
+# ============================================================
+# RADIATOR PERFORMANCE MODEL
+# ============================================================
 
+heat_rejection = (
+    h *
+    radiator_area *
+    delta_T *
+    (radiator_efficiency / 100)
+)
 
 # ============================================================
 # SIMULATION
@@ -422,17 +368,12 @@ time = np.linspace(
 
 
 temperature = np.zeros_like(time)
-
-
 temperature[0] = fluid_temperature
-
 
 
 for i in range(1,len(time)):
 
-
     heat_loss = (
-
         heat_rejection *
         (
             temperature[i-1]
@@ -441,42 +382,26 @@ for i in range(1,len(time)):
         )
         /
         delta_T
-
     )
-
 
     net_power = (
-
         heat_input -
         heat_loss
-
     )
-
 
     temperature[i] = (
-
         temperature[i-1]
-
         +
-
         (
-
         net_power /
         thermal_mass
-
         )
-
         *
-
         (
-
         time[i] -
         time[i-1]
-
         )
-
     )
-
 
 
 current_temperature = temperature[-1]
@@ -491,25 +416,19 @@ st.subheader(
 
 
 if current_temperature < 60:
-
     st.success(
         "SYSTEM NOMINAL - Thermal limits stable"
     )
 
-
 elif current_temperature < 90:
-
     st.warning(
         "CAUTION - Elevated coolant temperature"
     )
 
-
 else:
-
     st.error(
         "THERMAL ALERT - Cooling capacity exceeded"
     )
-
 
 
 # ============================================================
@@ -523,24 +442,20 @@ st.subheader(
 
 telemetry = st.columns(4)
 
-
 telemetry[0].metric(
     "Fluid Temperature",
     f"{current_temperature:.2f} °C"
 )
-
 
 telemetry[1].metric(
     "Flow Velocity",
     f"{buoyancy_velocity:.3f} m/s"
 )
 
-
 telemetry[2].metric(
     "Reynolds Number",
     f"{Reynolds:,.0f}"
 )
-
 
 telemetry[3].metric(
     "Heat Rejection",
@@ -552,18 +467,7 @@ st.metric(
     "Coolant System",
     coolant_type
 )
-# ============================================================
-# RADIATOR PERFORMANCE MODEL
-# ============================================================
 
-heat_rejection = (
-
-    h *
-    radiator_area *
-    delta_T *
-    (radiator_efficiency / 100)
-
-)
 
 # ============================================================
 # GRAPH
@@ -651,7 +555,6 @@ ax2.plot(
 )
 
 
-
 # ------------------------------------------------------------
 # HEAT SOURCE
 # ------------------------------------------------------------
@@ -674,7 +577,6 @@ ax2.text(
     "🔥 HOT\nSOURCE",
     fontsize=10
 )
-
 
 
 # ------------------------------------------------------------
@@ -701,7 +603,6 @@ ax2.text(
 )
 
 
-
 # ------------------------------------------------------------
 # FLOW ARROW
 # ------------------------------------------------------------
@@ -724,7 +625,6 @@ ax2.text(
     0.92,
     f"Natural Flow: {buoyancy_velocity:.3f} m/s"
 )
-
 
 
 # ------------------------------------------------------------
@@ -753,7 +653,6 @@ ax2.set_title(
 
 
 st.pyplot(fig2)
-
 
 
 # ============================================================
@@ -794,8 +693,6 @@ Natural convection radiator
 """
 )
 
-
-
 # ============================================================
 # FOOTER
 # ============================================================
@@ -803,10 +700,8 @@ Natural convection radiator
 st.markdown(
 """
 <div class="footer">
-
 Passive Liquid Cooling Research Platform |
 Thermal Simulation Core v1.0
-
 </div>
 """,
 unsafe_allow_html=True
