@@ -217,6 +217,18 @@ specific_heat = st.sidebar.slider(
     4186
 )
 
+# ============================================================
+# THERMAL MASS WITH COOLANT
+# ============================================================
+
+thermal_mass = (
+
+    fluid_volume *
+    coolant_density *
+    coolant_heat_capacity
+
+)
+
 
 thermal_conductivity = st.sidebar.slider(
     "Thermal Conductivity (W/mK)",
@@ -241,6 +253,41 @@ radiator_area = st.sidebar.slider(
     1.0
 )
 
+# ============================================================
+# PART 3 - THERMOSYPHON PARAMETERS
+# ============================================================
+
+st.sidebar.divider()
+
+st.sidebar.subheader(
+    "🚀 Thermosyphon Controls"
+)
+
+
+coolant_type = st.sidebar.selectbox(
+    "Coolant Type",
+    [
+        "Water",
+        "Water-Glycol",
+        "Dielectric Fluid"
+    ]
+)
+
+
+orientation_angle = st.sidebar.slider(
+    "Cooling Loop Angle (degrees)",
+    0,
+    90,
+    45
+)
+
+
+radiator_efficiency = st.sidebar.slider(
+    "Radiator Efficiency (%)",
+    10,
+    100,
+    85
+)
 
 
 # ============================================================
@@ -248,6 +295,50 @@ radiator_area = st.sidebar.slider(
 # ============================================================
 
 gravity = 9.81
+# ============================================================
+# COOLANT DATABASE
+# ============================================================
+
+if coolant_type == "Water":
+
+    coolant_density = 997
+
+    coolant_heat_capacity = 4186
+
+    coolant_conductivity = 0.60
+
+
+
+elif coolant_type == "Water-Glycol":
+
+    coolant_density = 1050
+
+    coolant_heat_capacity = 3500
+
+    coolant_conductivity = 0.40
+
+
+
+else:
+
+    coolant_density = 850
+
+    coolant_heat_capacity = 2200
+
+    coolant_conductivity = 0.12
+
+
+
+# Gravity vector effect
+
+gravity = (
+    9.81 *
+    np.sin(
+        np.radians(
+            orientation_angle
+        )
+    )
+)
 
 thermal_expansion = 0.00021
 
@@ -413,6 +504,35 @@ for i in range(1,len(time)):
 
 current_temperature = temperature[-1]
 
+# ============================================================
+# THERMAL SAFETY MONITOR
+# ============================================================
+
+st.subheader(
+    "🚨 Thermal Mission Status"
+)
+
+
+if current_temperature < 60:
+
+    st.success(
+        "SYSTEM NOMINAL - Thermal limits stable"
+    )
+
+
+elif current_temperature < 90:
+
+    st.warning(
+        "CAUTION - Elevated coolant temperature"
+    )
+
+
+else:
+
+    st.error(
+        "THERMAL ALERT - Cooling capacity exceeded"
+    )
+
 
 
 # ============================================================
@@ -451,6 +571,22 @@ telemetry[3].metric(
 )
 
 
+st.metric(
+    "Coolant System",
+    coolant_type
+)
+# ============================================================
+# RADIATOR PERFORMANCE MODEL
+# ============================================================
+
+heat_rejection = (
+
+    h *
+    radiator_area *
+    delta_T *
+    (radiator_efficiency / 100)
+
+)
 
 # ============================================================
 # GRAPH
