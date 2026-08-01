@@ -1,277 +1,280 @@
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
 import streamlit.components.v1 as components
 
-# --- PAGE CONFIGURATION ---
+# --- PAGE CONFIG ---
 st.set_page_config(
-    page_title="Pump-Free Liquid Server Cooling",
-    page_icon="❄️",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="How Pump-Free Liquid Cooling Works",
+    page_icon="🔄",
+    layout="wide"
 )
 
-# Custom CSS for clean modern styling
+# Clean CSS Styling
 st.markdown("""
 <style>
-    .main-header { font-size: 2.2rem; font-weight: 700; color: #f8fafc; margin-bottom: 0px; }
-    .sub-header { font-size: 1.1rem; color: #94a3b8; margin-bottom: 25px; }
-    .card { background-color: #1e293b; border-radius: 10px; padding: 20px; border: 1px solid #334155; margin-bottom: 20px; }
-    .step-num { background-color: #3b82f6; color: white; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; margin-right: 8px; }
-    .formula-box { background-color: #0f172a; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 6px; font-family: monospace; color: #38bdf8; margin: 10px 0px; }
+    .title-box { text-align: center; margin-bottom: 25px; }
+    .title-main { font-size: 2.3rem; font-weight: 800; color: #f8fafc; }
+    .title-sub { font-size: 1.1rem; color: #38bdf8; margin-top: 5px; }
+    
+    .why-box { background-color: #1e293b; border-left: 4px solid #38bdf8; padding: 14px 18px; border-radius: 6px; margin-bottom: 15px; }
+    .why-title { font-weight: bold; color: #38bdf8; font-size: 0.95rem; margin-bottom: 4px; }
+    .why-desc { font-size: 0.9rem; color: #cbd5e1; margin: 0; }
+    
+    .component-card { background-color: #0f172a; border: 1px solid #334155; padding: 18px; border-radius: 10px; height: 100%; }
+    .component-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 8px; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER SECTION ---
-st.markdown('<div class="main-header">⚡ Pump-Free Liquid Server Cooling System</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">A complete visual guide to zero-power server cooling using heat convection & evaporation physics</div>', unsafe_allow_html=True)
+# --- HEADER ---
+st.markdown("""
+<div class="title-box">
+    <div class="title-main">🔄 The Self-Running Liquid Cooling Loop</div>
+    <div class="title-sub">An interactive guide showing how heat naturally circulates liquid without any electric pump</div>
+</div>
+""", unsafe_allow_html=True)
 
-# --- SIDEBAR CONTROLS ---
-st.sidebar.header("🎛️ Live System Controls")
-st.sidebar.markdown("Adjust these sliders to see how the cooling loop reacts in real-time:")
+# --- TOP SUMMARY BAR ---
+st.markdown("### 1️⃣ The Live Result")
 
-cpu_wattage = st.sidebar.slider("CPU Heat Power (Watts)", min_value=50, max_value=300, value=180, step=10)
-room_temp = st.sidebar.slider("Room Temperature (°C)", min_value=15, max_value=40, value=25, step=1)
-liquid_choice = st.sidebar.radio("Cooling Liquid Used", ["Low-Boiling Fluid (Boils at 61°C)", "Pure Water (Boils at 100°C)"])
+# CONTROLS IN SIDEBAR WITH "WHY IS THIS HERE?" EXPLANATIONS
+st.sidebar.header("🎛️ Interactive Controls")
+st.sidebar.markdown("---")
 
-# Fluid Properties
-if "61°C" in liquid_choice:
-    boil_pt = 61.0
-    latent_heat = 112  # kJ/kg
-    resistance = 0.16
-else:
-    boil_pt = 100.0
-    latent_heat = 2260 # kJ/kg
-    resistance = 0.28
+# Slider 1
+cpu_watts = st.sidebar.slider("CPU Heat Power (Watts)", 50, 300, 180, 10)
+st.sidebar.caption("👉 **Why this slider?** Simulates computer work load. More work = more heat generated ($P = I^2 R$).")
+st.sidebar.markdown("---")
 
-# Physics Calculations
-cpu_temp = room_temp + (cpu_wattage * resistance)
-is_boiling = cpu_temp >= boil_pt
-flow_speed = int(np.clip(cpu_wattage / 35, 2, 10)) if is_boiling else 1
+# Slider 2
+room_temp = st.sidebar.slider("Room Temperature (°C)", 15, 40, 25, 1)
+st.sidebar.caption("👉 **Why this slider?** Shows ambient air temperature. The radiator needs room air to be cooler than the CPU to reject heat.")
+st.sidebar.markdown("---")
 
-# --- TOP STATS ROW ---
-col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-col_m1.metric("Current CPU Temp", f"{cpu_temp:.1f} °C", f"{cpu_temp - room_temp:.1f}°C above room")
-col_m2.metric("Boiling Temperature", f"{boil_pt}°C")
-col_m3.metric("Cooling Mode", "Natural Evaporation" if is_boiling else "Liquid Expansion")
-col_m4.metric("Pump Power Used", "0 Watts (100% Passive)")
+# Choice
+liquid = st.sidebar.radio("Cooling Liquid Choice", ["Low-Boiling Liquid (Boils at 61°C)", "Pure Water (Boils at 100°C)"])
+st.sidebar.caption("👉 **Why choose liquid?** Demonstrates why engineered fluids are used—low boiling points evaporate faster at safe processor temperatures.")
+
+# Calculate loop state
+boil_pt = 61.0 if "61°C" in liquid else 100.0
+resistance = 0.16 if "61°C" in liquid else 0.28
+cpu_temp = room_temp + (cpu_watts * resistance)
+is_loop_running = cpu_temp >= boil_pt
+flow_speed = int(np.clip(cpu_watts / 35, 2, 10)) if is_loop_running else 1
+
+# Display key status cards
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("Current Processor Temp", f"{cpu_temp:.1f} °C")
+m2.metric("Liquid Boiling Point", f"{boil_pt} °C")
+m3.metric("Loop Movement Status", "⚡ Fast Self-Drive Loop" if is_loop_running else "💤 Idle / Heating Up")
+m4.metric("Pump Power Consumption", "0 Watts (FREE)")
 
 st.divider()
 
-# --- MAIN TWO-COLUMN LAYOUT ---
-col_left, col_right = st.columns([1.1, 0.9])
+# --- MAIN INTERACTIVE SECTION ---
+st.markdown("### 2️⃣ Watch the Continuous Loop in Action")
+
+col_left, col_right = st.columns([1.2, 0.8])
 
 with col_left:
-    st.subheader("🖥️ Interactive System Schematic")
-    st.caption("Modeled after server cold-plates with red hot-line and blue cold-return line.")
-    
-    # HTML5 Canvas Diagram
-    canvas_code = f"""
-    <div style="text-align: center; background-color: #0f172a; padding: 15px; border-radius: 12px; border: 1px solid #334155;">
-        <canvas id="coolingCanvas" width="580" height="380"></canvas>
+    # ANIMATED LOOP SCHEMATIC
+    loop_html = f"""
+    <div style="text-align: center; background-color: #0b0f19; padding: 15px; border-radius: 12px; border: 1px solid #1e293b;">
+        <canvas id="loopCanvas" width="560" height="380"></canvas>
     </div>
     <script>
-        const canvas = document.getElementById('coolingCanvas');
+        const canvas = document.getElementById('loopCanvas');
         const ctx = canvas.getContext('2d');
         
         let hotY = 280;
         let coldY = 80;
-        const isBoiling = {str(is_boiling).lower()};
+        const isRunning = {str(is_loop_running).lower()};
         const speed = {flow_speed};
-        const watts = {cpu_wattage};
+        const watts = {cpu_watts};
 
-        function drawSchematic() {{
+        function render() {{
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 1. TOP HEAT EXCHANGER / RADIATOR
+            // 1. TOP RADIATOR
             ctx.fillStyle = '#1e293b';
             ctx.strokeStyle = '#38bdf8';
             ctx.lineWidth = 2;
-            ctx.fillRect(120, 30, 340, 50);
-            ctx.strokeRect(120, 30, 340, 50);
+            ctx.fillRect(130, 30, 300, 50);
+            ctx.strokeRect(130, 30, 300, 50);
             ctx.fillStyle = '#38bdf8';
             ctx.font = 'bold 13px Arial';
-            ctx.fillText('TOP HEAT EXCHANGER / RADIATOR', 180, 50);
-            ctx.font = '11px Arial';
-            ctx.fillText('Rejects heat out to ambient room air', 200, 68);
+            ctx.fillText('TOP RADIATOR (Rejects Heat to Room)', 160, 60);
 
-            // 2. SERVER CHIP & COLD PLATE (At Bottom)
-            ctx.fillStyle = '#334155';
-            ctx.fillRect(140, 280, 300, 70);
+            // 2. BOTTOM COLD PLATE & CPU
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(160, 280, 240, 70);
             
-            ctx.fillStyle = '#b45309'; // Copper color
-            ctx.fillRect(200, 290, 180, 25);
+            // Copper Block
+            ctx.fillStyle = '#d97706';
+            ctx.fillRect(190, 290, 180, 25);
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 12px Arial';
+            ctx.font = 'bold 11px Arial';
             ctx.fillText('COPPER COLD PLATE', 230, 307);
+            
+            // CPU Chip
+            ctx.fillStyle = isRunning ? '#ef4444' : '#64748b';
             ctx.font = 'bold 13px Arial';
-            ctx.fillStyle = isBoiling ? '#ef4444' : '#f8fafc';
-            ctx.fillText('SERVER CPU (Heat: ' + watts + 'W)', 220, 338);
+            ctx.fillText('HOT SERVER CPU (' + watts + 'W)', 210, 338);
 
-            // 3. PIPING LOOP
+            // 3. PIPES
             ctx.lineWidth = 14;
             
-            // RED LINE (Hot vapor leaving cold plate)
-            ctx.strokeStyle = isBoiling ? '#dc2626' : '#94a3b8';
+            // Upward Hot Red Pipe
+            ctx.strokeStyle = isRunning ? '#dc2626' : '#475569';
             ctx.beginPath();
-            ctx.moveTo(200, 290);
-            ctx.lineTo(200, 80);
+            ctx.moveTo(190, 290);
+            ctx.lineTo(190, 80);
             ctx.stroke();
 
-            // BLUE LINE (Cool liquid returning from radiator)
+            // Downward Cool Blue Pipe
             ctx.strokeStyle = '#2563eb';
             ctx.beginPath();
-            ctx.moveTo(380, 80);
-            ctx.lineTo(380, 290);
+            ctx.moveTo(370, 80);
+            ctx.lineTo(370, 290);
             ctx.stroke();
 
-            // 4. ANIMATED FLOW PARTICLES
-            if (isBoiling) {{
-                ctx.fillStyle = '#fca5a5';
+            // Labels on Pipes
+            ctx.fillStyle = '#fca5a5';
+            ctx.font = '11px Arial';
+            ctx.fillText('Hot Vapor Rises ▲', 95, 185);
+            
+            ctx.fillStyle = '#93c5fd';
+            ctx.fillText('▼ Cool Liquid Falls', 385, 185);
+
+            // 4. ANIMATED BUBBLES AND DROPS
+            if (isRunning) {{
+                // Red rising vapor
+                ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
-                ctx.arc(200, hotY, 7, 0, Math.PI * 2);
+                ctx.arc(190, hotY, 6, 0, Math.PI * 2);
                 ctx.fill();
 
                 ctx.beginPath();
-                ctx.arc(200, (hotY + 70) % 210 + 80, 5, 0, Math.PI * 2);
+                ctx.arc(190, (hotY + 70) % 210 + 80, 5, 0, Math.PI * 2);
                 ctx.fill();
 
                 hotY -= speed;
                 if (hotY < 80) hotY = 280;
             }}
 
+            // Blue falling liquid
             ctx.fillStyle = '#93c5fd';
             ctx.beginPath();
-            ctx.arc(380, coldY, 6, 0, Math.PI * 2);
+            ctx.arc(370, coldY, 6, 0, Math.PI * 2);
             ctx.fill();
 
             coldY += speed * 0.8;
             if (coldY > 280) coldY = 80;
 
-            requestAnimationFrame(drawSchematic);
+            requestAnimationFrame(render);
         }}
-        drawSchematic();
+        render();
     </script>
     """
-    components.html(canvas_code, height=410)
+    components.html(loop_html, height=410)
 
 with col_right:
-    st.subheader("📊 Live Thermal Graph")
-    st.caption("Shows CPU temperature stabilizing safely over time.")
+    st.markdown("#### ❓ Why does this loop move by itself?")
     
-    t = np.linspace(0, 60, 100)
-    temp_curve = room_temp + (cpu_temp - room_temp) * (1 - np.exp(-t / 10))
+    st.markdown("""
+    <div class="why-box">
+        <div class="why-title">1. The Heat Creates Gas</div>
+        <div class="why-desc">The hot CPU boils the liquid inside the copper plate into vapor. Gas is much lighter (less dense) than liquid.</div>
+    </div>
     
-    fig, ax = plt.subplots(figsize=(6, 3.8))
-    fig.patch.set_facecolor('#0f172a')
-    ax.set_facecolor('#1e293b')
+    <div class="why-box">
+        <div class="why-title">2. Natural Buoyancy Pushes Gas Up</div>
+        <div class="why-desc">Just like a helium balloon or bubble in water, light gas naturally rushes UP through the red pipe without needing any pump.</div>
+    </div>
     
-    ax.plot(t, temp_curve, color="#ef4444", linewidth=3, label="CPU Temperature (°C)")
-    ax.axhline(boil_pt, color="#f59e0b", linestyle="--", label=f"Boiling Threshold ({boil_pt}°C)")
-    ax.axhline(room_temp, color="#10b981", linestyle=":", label=f"Room Temp ({room_temp}°C)")
+    <div class="why-box">
+        <div class="why-title">3. Radiator Cools Gas Back to Liquid</div>
+        <div class="why-desc">At the top radiator, room air cools the gas down, condensing it back into heavy liquid droplets.</div>
+    </div>
     
-    ax.set_xlabel("Time (seconds)", color="#94a3b8")
-    ax.set_ylabel("Temperature (°C)", color="#94a3b8")
-    ax.tick_params(colors='#94a3b8')
-    ax.set_ylim(10, 115)
-    ax.legend(loc="lower right", facecolor="#0f172a", edgecolor="#334155", labelcolor="white")
-    ax.grid(True, alpha=0.15)
-    st.pyplot(fig)
+    <div class="why-box">
+        <div class="why-title">4. Gravity Pulls Heavy Liquid Down</div>
+        <div class="why-desc">Gravity pulls the heavy cool liquid down the blue pipe back to the CPU, pushing more liquid into the copper plate to restart the cycle!</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.divider()
 
-# --- SECTION 1: STEP-BY-STEP EXPLANATION ---
-st.subheader("🔍 Step-by-Step: How This Cools a Server Without a Pump")
+# --- SECTION 3: COMPONENT BREAKDOWN ("WHY IS THIS ITEM HERE?") ---
+st.markdown("### 3️⃣ Component Guide: Why Is Every Part Necessary?")
 
 c1, c2, c3, c4 = st.columns(4)
 
 with c1:
     st.markdown("""
-    <div class="card">
-        <h4><span class="step-num">1</span> Heat Created</h4>
-        <p>Electricity passing through the computer processor generates intense heat. A metallic copper <b>Cold Plate</b> sits directly on top of the CPU to collect this heat energy.</p>
+    <div class="component-card">
+        <div class="component-title" style="color: #d97706;">🟨 Copper Cold Plate</div>
+        <p><b>Why is it here?</b></p>
+        <p>Copper conducts heat faster than almost any metal. It sits directly on top of the silicon processor chip to transfer heat straight into the internal liquid.</p>
     </div>
     """, unsafe_allow_html=True)
 
 with c2:
     st.markdown("""
-    <div class="card">
-        <h4><span class="step-num">2</span> Liquid Evaporates</h4>
-        <p>The liquid inside the cold plate absorbs the CPU's heat and boils into light, low-density vapor. Because gas is lighter than liquid, it naturally rushes upwards through the red pipe.</p>
+    <div class="component-card">
+        <div class="component-title" style="color: #ef4444;">🟥 Red Pipe (Rising Line)</div>
+        <p><b>Why is it red?</b></p>
+        <p>It carries low-density hot vapor upwards. It must be vertical so buoyancy can push the light gas bubbles straight up to the radiator.</p>
     </div>
     """, unsafe_allow_html=True)
 
 with c3:
     st.markdown("""
-    <div class="card">
-        <h4><span class="step-num">3</span> Heat Released</h4>
-        <p>The hot vapor reaches the top radiator. Cool air from the room blows over the radiator, removing the heat and turning the gas back into dense liquid droplets.</p>
+    <div class="component-card">
+        <div class="component-title" style="color: #38bdf8;">🟦 Top Radiator</div>
+        <p><b>Why is it at the top?</b></p>
+        <p>It dumps absorbed heat into the room. It must sit <i>above</i> the CPU so gravity can naturally pull condensed liquid back down.</p>
     </div>
     """, unsafe_allow_html=True)
 
 with c4:
     st.markdown("""
-    <div class="card">
-        <h4><span class="step-num">4</span> Gravity Return</h4>
-        <p>Gravity pulls the heavy cool liquid down through the blue pipe back into the CPU cold plate. The cycle repeats continuously with <b>zero mechanical pumps or electricity</b>.</p>
+    <div class="component-card">
+        <div class="component-title" style="color: #3b82f6;">🟦 Blue Pipe (Return Line)</div>
+        <p><b>Why is it blue?</b></p>
+        <p>It carries cooled, dense liquid back down to the CPU. Gravity supplies 100% of the force needed to move this liquid.</p>
     </div>
     """, unsafe_allow_html=True)
 
 st.divider()
 
-# --- SECTION 2: FORMULAS EXPLAINED SIMPLY ---
-st.subheader("📐 The Physics Formulas Made Simple")
+# --- SECTION 4: THE 3 SIMPLE FORMULAS ---
+st.markdown("### 4️⃣ Simple Formula Breakdown")
 
-col_f1, col_f2, col_f3 = st.columns(3)
+f1, f2, f3 = st.columns(3)
 
-with col_f1:
+with f1:
     st.markdown("""
-    <div class="card">
-        <h4>1. Heat Generation (Joule Heating)</h4>
-        <div class="formula-box">P = I² × R</div>
-        <p><b>What it means:</b> Electrical current (<i>I</i>) pushed through micro-transistor resistance (<i>R</i>) generates heat waste (<i>P</i>) in Watts.</p>
+    <div class="component-card">
+        <h4>⚡ 1. Where Heat Comes From</h4>
+        <p><b>Joule Heating:</b> $P = I^2 \cdot R$</p>
+        <p>Electric current ($I$) pushed through micro-resistors ($R$) produces heat ($P$). This is why computer chips get hot when working hard.</p>
     </div>
-    """, unsafe_allow_html=True)
+    """, unsafe_allow_math=True, unsafe_allow_html=True)
 
-with col_f2:
+with f2:
     st.markdown("""
-    <div class="card">
-        <h4>2. Heat Absorption (Latent Heat)</h4>
-        <div class="formula-box">Q = m × Lᵥ</div>
-        <p><b>What it means:</b> When liquid boils into gas, it absorbs massive amounts of heat (<i>Q</i>) without rising in temperature during the phase transformation.</p>
+    <div class="component-card">
+        <h4>💧 2. How Liquid Soaks Up Heat</h4>
+        <p><b>Latent Heat:</b> $Q = m \cdot L_v$</p>
+        <p>Liquid absorbs massive energy ($Q$) to turn into gas without getting hotter. This protects the CPU from overheating past safe limits.</p>
     </div>
-    """, unsafe_allow_html=True)
+    """, unsafe_allow_math=True, unsafe_allow_html=True)
 
-with col_f3:
+with f3:
     st.markdown("""
-    <div class="card">
-        <h4>3. Pump-Free Movement (Buoyancy)</h4>
-        <div class="formula-box">F_b = (ρ_liquid - ρ_vapor) × g × V</div>
-        <p><b>What it means:</b> Hot gas density (<i>ρ_vapor</i>) is far lower than cool liquid density (<i>ρ_liquid</i>). This density difference creates natural upward push force (<i>F_b</i>).</p>
+    <div class="component-card">
+        <h4>🎈 3. How the Loop Drives Itself</h4>
+        <p><b>Buoyancy Force:</b> $F_b = (\Delta \\rho) \cdot g \cdot V$</p>
+        <p>The density difference ($\Delta \\rho$) between light hot gas and heavy cool liquid creates an upward push force ($F_b$). Zero pump needed!</p>
     </div>
-    """, unsafe_allow_html=True)
-
-st.divider()
-
-# --- SECTION 3: EXAMINER / VIVA CHEAT SHEET ---
-st.subheader("💡 Examiner & Viva Questions (Quick Answers)")
-
-q1, q2 = st.columns(2)
-
-with q1:
-    st.markdown("""
-    * **Q: Why does this system require NO electric pump?**  
-      * *Answer:* Heating changes liquid into gas, making it much lighter than the surrounding liquid. Natural buoyancy pushes gas up, and gravity pulls condensed cool liquid back down automatically.
-    
-    * **Q: Which Class 11 Physics topic does this demonstrate?**  
-      * *Answer:* Thermal Properties of Matter (Latent Heat of Vaporization) and Fluid Dynamics (Natural Convection & Density Differences).
-    """)
-
-with q2:
-    st.markdown("""
-    * **Q: Why is liquid cooling better than a regular computer air fan?**  
-      * *Answer:* Liquids can store and move over 1,000 times more heat per volume than air, making liquid cooling vastly more efficient for dense server rooms.
-    
-    * **Q: Which Class 12 Physics topic applies here?**  
-      * *Answer:* Current Electricity & Joule's Heating Law ($P = I^2 R$), which causes processors to heat up in the first place.
-    """)
+    """, unsafe_allow_math=True, unsafe_allow_html=True)
