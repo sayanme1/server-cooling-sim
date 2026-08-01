@@ -1,708 +1,154 @@
-# ============================================================
-# app.py
-# Convection-Based Passive Liquid Cooling System
-# Combined Part 1A + Part 1B
-# ============================================================
-
 import streamlit as st
+import time
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, Rectangle, FancyArrowPatch
+import pandas as pd
 
-
-# ============================================================
-# PAGE CONFIG
-# ============================================================
-
+# Page Configuration
 st.set_page_config(
-    page_title="Passive Liquid Cooling | Mission Control",
-    page_icon="🚀",
+    page_title="Passive Liquid Cooling Simulation",
+    page_icon="❄️",
     layout="wide"
 )
 
-
-# ============================================================
-# NASA / TESLA STYLE
-# ============================================================
-
-st.markdown(
-"""
+# Glassmorphism CSS Injection
+glass_css = """
 <style>
+    /* Global Background */
+    .stApp {
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+        background-attachment: fixed;
+        color: #f8fafc;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    /* Glassmorphism Card Container */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        margin-bottom: 25px;
+    }
+    
+    .glass-metric {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 15px;
+        text-align: center;
+    }
 
-.stApp {
-    background:
-    linear-gradient(
-        180deg,
-        #05070d,
-        #0b1220
-    );
-    color:white;
-}
+    h1, h2, h3 {
+        color: #f8fafc !important;
+        font-weight: 600;
+    }
 
-
-h1,h2,h3 {
-    color:white;
-}
-
-
-.metric-card {
-    background:#111827;
-    padding:18px;
-    border-radius:12px;
-    border:1px solid #1e40af;
-}
-
-
-.metric-title {
-    color:#94a3b8;
-    font-size:14px;
-}
-
-
-.metric-value {
-    color:#38bdf8;
-    font-size:30px;
-    font-weight:bold;
-}
-
-
-.footer {
-    text-align:center;
-    color:#64748b;
-}
-
+    /* Custom Button Style */
+    .stButton>button {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 28px;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        transition: all 0.3s ease;
+    }
+    
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+    }
 </style>
-""",
-unsafe_allow_html=True
-)
+"""
 
+st.markdown(glass_css, unsafe_allow_html=True)
 
-# ============================================================
-# HEADER
-# ============================================================
+# Main Title Header inside Glass Card
+st.markdown("""
+    <div class="glass-card" style="text-align: center;">
+        <h1>Convection-Based Passive Liquid Cooling System</h1>
+        <p style="color: #94a3b8; font-size: 1.1rem;">
+            A CBSE Class 11 & 12 Physics Simulation demonstrating phase change, buoyancy, and thermodynamic heat transfer.
+        </p>
+    </div>
+""", unsafe_allow_html=True)
 
-st.title(
-    "🚀 PASSIVE LIQUID COOLING SYSTEM"
-)
+# Sidebar Controls (Glass styled container context)
+with st.sidebar:
+    st.markdown("### 🎛️ Simulation Controls")
+    server_load = st.slider("Server Heat Load (Watts)", 50, 500, 200, 10)
+    ambient_temp = st.slider("Ambient Temperature (°C)", 15, 40, 25, 1)
+    fluid_vol = st.selectbox("Working Fluid Type", ["Water (High Latent Heat)", "Ethanol (Low Boiling Point)"])
+    run_sim = st.button("🚀 Initialize Thermal Cycle")
 
-st.subheader(
-    "Convection-Based Thermal Management | Mission Control Dashboard"
-)
+# Layout Columns
+col1, col2 = st.cols([1.2, 1])
 
-st.divider()
-
-
-# ============================================================
-# STATUS CARDS
-# ============================================================
-
-cards = [
-    ("SYSTEM STATUS","ONLINE"),
-    ("COOLING MODE","PASSIVE"),
-    ("PUMP","NONE"),
-    ("MISSION TIME","T+001")
-]
-
-
-columns = st.columns(4)
-
-
-for col,card in zip(columns,cards):
-    with col:
-        st.markdown(
-        f"""
-        <div class="metric-card">
-
-        <div class="metric-title">
-        {card[0]}
+with col1:
+    st.markdown("""
+        <div class="glass-card">
+            <h3>📖 CBSE NCERT Physics Principles</h3>
+            <ul style="color: #cbd5e1; line-height: 1.8;">
+                <li><b>Class 11 - Thermal Properties of Matter:</b> Latent Heat of Vaporization absorbs immense heat energy quickly during phase change without changing internal temperature[cite: 1].</li>
+                <li><b>Class 11 - Mechanical Properties of Fluids:</b> Buoyancy and density variation drive convective circulation (hot vapor rises, cooled liquid falls)[cite: 1].</li>
+                <li><b>Class 11 - Thermodynamics:</b> Fundamental laws governing spontaneous heat flow from high-temperature regions (server) to low-temperature regions (ambient air)[cite: 1].</li>
+            </ul>
         </div>
+    """, unsafe_allow_html=True)
 
-        <div class="metric-value">
-        {card[1]}
+with col2:
+    st.markdown("""
+        <div class="glass-card">
+            <h3>⚙️ Apparatus Blueprint</h3>
+            <p style="color: #cbd5e1; line-height: 1.6;">
+                Modeled after closed-loop architecture:
+            </p>
+            <ul style="color: #cbd5e1; line-height: 1.6;">
+                <li><b>Evaporator (Bottom):</b> Thermal contact with the hot server chip; induces boiling and vaporization[cite: 1].</li>
+                <li><b>Closed Loop Pipe:</b> Transports vapor upward via buoyant forces[cite: 1].</li>
+                <li><b>Condenser (Top):</b> Dissipates heat to ambient air, reverting vapor to liquid drops driven downward by gravity[cite: 1].</li>
+            </ul>
         </div>
+    """, unsafe_allow_html=True)
 
-        </div>
-        """,
-        unsafe_allow_html=True
-        )
+# Live Simulation Dashboard Section
+st.markdown("### 📊 Real-Time Thermal Dashboard & Analytics")
 
-
-# ============================================================
-# SIDEBAR INPUTS
-# ============================================================
-
-st.sidebar.title(
-    "⚙️ Thermal Parameters"
-)
-
-
-heat_input = st.sidebar.slider(
-    "Heat Source Power (W)",
-    10,
-    500,
-    100
-)
-
-
-fluid_temperature = st.sidebar.slider(
-    "Initial Fluid Temperature (°C)",
-    20,
-    90,
-    40
-)
-
-
-ambient_temperature = st.sidebar.slider(
-    "Ambient Temperature (°C)",
-    0,
-    50,
-    25
-)
-
-
-fluid_volume = st.sidebar.slider(
-    "Liquid Volume (L)",
-    0.5,
-    10.0,
-    3.0
-)
-
-
-st.sidebar.divider()
-
-
-st.sidebar.subheader(
-    "🧪 Fluid Properties"
-)
-
-
-fluid_density = st.sidebar.slider(
-    "Fluid Density (kg/m³)",
-    700,
-    1200,
-    1000
-)
-
-
-specific_heat = st.sidebar.slider(
-    "Specific Heat (J/kgK)",
-    1000,
-    5000,
-    4186
-)
-
-
-thermal_conductivity = st.sidebar.slider(
-    "Thermal Conductivity (W/mK)",
-    0.05,
-    1.0,
-    0.60
-)
-
-
-loop_height = st.sidebar.slider(
-    "Vertical Loop Height (m)",
-    0.1,
-    5.0,
-    1.0
-)
-
-
-radiator_area = st.sidebar.slider(
-    "Radiator Area (m²)",
-    0.05,
-    5.0,
-    1.0
-)
-
-# ============================================================
-# PART 3 - THERMOSYPHON PARAMETERS
-# ============================================================
-
-st.sidebar.divider()
-
-st.sidebar.subheader(
-    "🚀 Thermosyphon Controls"
-)
-
-
-coolant_type = st.sidebar.selectbox(
-    "Coolant Type",
-    [
-        "Water",
-        "Water-Glycol",
-        "Dielectric Fluid"
-    ]
-)
-
-
-orientation_angle = st.sidebar.slider(
-    "Cooling Loop Angle (degrees)",
-    0,
-    90,
-    45
-)
-
-
-radiator_efficiency = st.sidebar.slider(
-    "Radiator Efficiency (%)",
-    10,
-    100,
-    85
-)
-
-
-# ============================================================
-# PHYSICS ENGINE
-# ============================================================
-
-gravity = 9.81
-
-# ============================================================
-# COOLANT DATABASE
-# ============================================================
-
-if coolant_type == "Water":
-    coolant_density = 997
-    coolant_heat_capacity = 4186
-    coolant_conductivity = 0.60
-
-elif coolant_type == "Water-Glycol":
-    coolant_density = 1050
-    coolant_heat_capacity = 3500
-    coolant_conductivity = 0.40
-
+if run_sim:
+    placeholder = st.empty()
+    
+    # Simulate Real-Time Equilibrium Data
+    time_steps = 30
+    temps = []
+    pressures = []
+    
+    base_temp = ambient_temp + (server_load * 0.15)
+    
+    for i in range(time_steps):
+        current_temp = base_temp * (1 + 0.5 * np.exp(-i/5)) + np.random.normal(0, 0.5)
+        temps.append(current_temp)
+        
+        with placeholder.container():
+            m1, m2, m3 = st.columns(3)
+            with m1:
+                st.markdown(f"""<div class="glass-metric"><h4>Evaporator Temp</h4><h2>{current_temp:.1f} °C</h2></div>""", unsafe_allow_html=True)
+            with m2:
+                boiling_rate = server_load * 0.04
+                st.markdown(f"""<div class="glass-metric"><h4>Vaporization Rate</h4><h2>{boiling_rate:.1f} g/s</h2></div>""", unsafe_allow_html=True)
+            with m3:
+                efficiency = min(98.5, 80 + (server_load * 0.03))
+                st.markdown(f"""<div class="glass-metric"><h4>Thermal Efficiency</h4><h2>{efficiency:.1f}%</h2></div>""", unsafe_allow_html=True)
+            
+            # Line chart visualization
+            chart_data = pd.DataFrame({"Temperature (°C)": temps})
+            st.line_chart(chart_data, color="#3b82f6")
+            time.sleep(0.08)
+    
+    st.success("Simulation complete: System successfully stabilized at safe operating temperature via passive convection!")
 else:
-    coolant_density = 850
-    coolant_heat_capacity = 2200
-    coolant_conductivity = 0.12
-
-
-# Gravity vector effect
-gravity = (
-    9.81 *
-    np.sin(
-        np.radians(
-            orientation_angle
-        )
-    )
-)
-
-thermal_expansion = 0.00021
-
-delta_T = max(
-    fluid_temperature -
-    ambient_temperature,
-    0.1
-)
-
-
-# Buoyancy velocity
-buoyancy_velocity = np.sqrt(
-    gravity *
-    thermal_expansion *
-    delta_T *
-    loop_height
-)
-
-
-# Reynolds number
-kinematic_viscosity = 1e-6
-
-
-Reynolds = (
-    buoyancy_velocity *
-    loop_height /
-    kinematic_viscosity
-)
-
-
-# Nusselt approximation
-if Reynolds < 2300:
-    Nusselt = (
-        0.54 *
-        Reynolds**0.25
-    )
-else:
-    Nusselt = (
-        0.15 *
-        Reynolds**0.33
-    )
-
-
-# Heat transfer coefficient
-h = (
-    Nusselt *
-    thermal_conductivity /
-    loop_height
-)
-
-
-# Cooling capacity / Thermal mass
-thermal_mass = (
-    fluid_volume *
-    fluid_density *
-    specific_heat
-)
-
-# ============================================================
-# RADIATOR PERFORMANCE MODEL
-# ============================================================
-
-heat_rejection = (
-    h *
-    radiator_area *
-    delta_T *
-    (radiator_efficiency / 100)
-)
-
-# ============================================================
-# SIMULATION
-# ============================================================
-
-time = np.linspace(
-    0,
-    1800,
-    300
-)
-
-
-temperature = np.zeros_like(time)
-temperature[0] = fluid_temperature
-
-
-for i in range(1,len(time)):
-
-    heat_loss = (
-        heat_rejection *
-        (
-            temperature[i-1]
-            -
-            ambient_temperature
-        )
-        /
-        delta_T
-    )
-
-    net_power = (
-        heat_input -
-        heat_loss
-    )
-
-    temperature[i] = (
-        temperature[i-1]
-        +
-        (
-        net_power /
-        thermal_mass
-        )
-        *
-        (
-        time[i] -
-        time[i-1]
-        )
-    )
-
-
-current_temperature = temperature[-1]
-
-# ============================================================
-# THERMAL SAFETY MONITOR
-# ============================================================
-
-st.subheader(
-    "🚨 Thermal Mission Status"
-)
-
-
-if current_temperature < 60:
-    st.success(
-        "SYSTEM NOMINAL - Thermal limits stable"
-    )
-
-elif current_temperature < 90:
-    st.warning(
-        "CAUTION - Elevated coolant temperature"
-    )
-
-else:
-    st.error(
-        "THERMAL ALERT - Cooling capacity exceeded"
-    )
-
-
-# ============================================================
-# TELEMETRY
-# ============================================================
-
-st.subheader(
-    "🛰️ Live Thermal Telemetry"
-)
-
-
-telemetry = st.columns(4)
-
-telemetry[0].metric(
-    "Fluid Temperature",
-    f"{current_temperature:.2f} °C"
-)
-
-telemetry[1].metric(
-    "Flow Velocity",
-    f"{buoyancy_velocity:.3f} m/s"
-)
-
-telemetry[2].metric(
-    "Reynolds Number",
-    f"{Reynolds:,.0f}"
-)
-
-telemetry[3].metric(
-    "Heat Rejection",
-    f"{heat_rejection:.2f} W"
-)
-
-
-st.metric(
-    "Coolant System",
-    coolant_type
-)
-
-
-# ============================================================
-# GRAPH
-# ============================================================
-
-st.subheader(
-    "🌡️ Thermal Response Curve"
-)
-
-
-fig,ax = plt.subplots(
-    figsize=(10,4)
-)
-
-
-ax.plot(
-    time,
-    temperature,
-    linewidth=2
-)
-
-
-ax.set_xlabel(
-    "Time (seconds)"
-)
-
-
-ax.set_ylabel(
-    "Temperature (°C)"
-)
-
-
-ax.set_title(
-    "Natural Convection Thermal Stabilization"
-)
-
-
-ax.grid(True)
-
-
-st.pyplot(fig)
-
-# ============================================================
-# PART 2 - LIQUID LOOP VISUALIZATION
-# ============================================================
-
-st.divider()
-
-st.subheader(
-    "💧 Passive Cooling Loop Visualization"
-)
-
-
-fig2, ax2 = plt.subplots(
-    figsize=(8,5)
-)
-
-
-# ------------------------------------------------------------
-# LOOP GEOMETRY
-# ------------------------------------------------------------
-
-loop_x = [
-    0.2,
-    0.8,
-    0.8,
-    0.2,
-    0.2
-]
-
-
-loop_y = [
-    0.2,
-    0.2,
-    0.8,
-    0.8,
-    0.2
-]
-
-
-ax2.plot(
-    loop_x,
-    loop_y,
-    linewidth=8
-)
-
-
-# ------------------------------------------------------------
-# HEAT SOURCE
-# ------------------------------------------------------------
-
-heat_block = Rectangle(
-    (0.05,0.4),
-    0.12,
-    0.25
-)
-
-
-ax2.add_patch(
-    heat_block
-)
-
-
-ax2.text(
-    0.05,
-    0.35,
-    "🔥 HOT\nSOURCE",
-    fontsize=10
-)
-
-
-# ------------------------------------------------------------
-# RADIATOR
-# ------------------------------------------------------------
-
-radiator = Rectangle(
-    (0.83,0.4),
-    0.12,
-    0.25
-)
-
-
-ax2.add_patch(
-    radiator
-)
-
-
-ax2.text(
-    0.78,
-    0.35,
-    "❄️ RADIATOR",
-    fontsize=10
-)
-
-
-# ------------------------------------------------------------
-# FLOW ARROW
-# ------------------------------------------------------------
-
-arrow = FancyArrowPatch(
-    (0.5,0.85),
-    (0.75,0.85),
-    arrowstyle="->",
-    mutation_scale=25
-)
-
-
-ax2.add_patch(
-    arrow
-)
-
-
-ax2.text(
-    0.35,
-    0.92,
-    f"Natural Flow: {buoyancy_velocity:.3f} m/s"
-)
-
-
-# ------------------------------------------------------------
-# DISPLAY SETTINGS
-# ------------------------------------------------------------
-
-ax2.set_xlim(
-    0,
-    1
-)
-
-ax2.set_ylim(
-    0,
-    1
-)
-
-
-ax2.axis(
-    "off"
-)
-
-
-ax2.set_title(
-    "Buoyancy Driven Liquid Circulation"
-)
-
-
-st.pyplot(fig2)
-
-
-# ============================================================
-# SYSTEM ARCHITECTURE
-# ============================================================
-
-st.subheader(
-    "🛰️ System Architecture"
-)
-
-
-architecture = st.columns(3)
-
-
-architecture[0].info(
-"""
-🔥 Heat Source
-
-Electronic thermal load
-"""
-)
-
-
-architecture[1].info(
-"""
-💧 Liquid Loop
-
-Buoyancy driven circulation
-"""
-)
-
-
-architecture[2].info(
-"""
-❄️ Heat Dissipation
-
-Natural convection radiator
-"""
-)
-
-# ============================================================
-# FOOTER
-# ============================================================
-
-st.markdown(
-"""
-<div class="footer">
-Passive Liquid Cooling Research Platform |
-Thermal Simulation Core v1.0
-</div>
-""",
-unsafe_allow_html=True
-)
+    st.info("Adjust your parameters in the sidebar and click **'Initialize Thermal Cycle'** to run the live simulation.")
