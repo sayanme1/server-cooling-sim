@@ -20,11 +20,11 @@ st.markdown("""
     .step-num { background-color: #3b82f6; color: white; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; margin-right: 8px; }
     .formula-box { background-color: #0f172a; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 6px; font-family: monospace; color: #38bdf8; margin: 10px 0px; }
 </style>
-""", unsafe_allow_allowed_html=True)
+""", unsafe_allow_html=True)
 
 # --- HEADER SECTION ---
-st.markdown('<div class="main-header">⚡ Pump-Free Liquid Server Cooling System</div>', unsafe_allow_allowed_html=True)
-st.markdown('<div class="sub-header">A complete visual guide to zero-power server cooling using heat convection & evaporation physics</div>', unsafe_allow_allowed_html=True)
+st.markdown('<div class="main-header">⚡ Pump-Free Liquid Server Cooling System</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">A complete visual guide to zero-power server cooling using heat convection & evaporation physics</div>', unsafe_allow_html=True)
 
 # --- SIDEBAR CONTROLS ---
 st.sidebar.header("🎛️ Live System Controls")
@@ -96,10 +96,9 @@ with col_left:
             ctx.fillText('Rejects heat out to ambient room air', 200, 68);
 
             // 2. SERVER CHIP & COLD PLATE (At Bottom)
-            // Server Tray
             ctx.fillStyle = '#334155';
             ctx.fillRect(140, 280, 300, 70);
-            // Copper Cold Plate (Directly touching CPU)
+            
             ctx.fillStyle = '#b45309'; // Copper color
             ctx.fillRect(200, 290, 180, 25);
             ctx.fillStyle = '#ffffff';
@@ -112,7 +111,7 @@ with col_left:
             // 3. PIPING LOOP
             ctx.lineWidth = 14;
             
-            // RED LINE (Hot vapor/liquid leaving cold plate)
+            // RED LINE (Hot vapor leaving cold plate)
             ctx.strokeStyle = isBoiling ? '#dc2626' : '#94a3b8';
             ctx.beginPath();
             ctx.moveTo(200, 290);
@@ -128,7 +127,6 @@ with col_left:
 
             // 4. ANIMATED FLOW PARTICLES
             if (isBoiling) {{
-                // Rising Hot Bubbles (Red Line)
                 ctx.fillStyle = '#fca5a5';
                 ctx.beginPath();
                 ctx.arc(200, hotY, 7, 0, Math.PI * 2);
@@ -142,7 +140,6 @@ with col_left:
                 if (hotY < 80) hotY = 280;
             }}
 
-            // Falling Cool Drops (Blue Line)
             ctx.fillStyle = '#93c5fd';
             ctx.beginPath();
             ctx.arc(380, coldY, 6, 0, Math.PI * 2);
@@ -183,7 +180,7 @@ with col_right:
 
 st.divider()
 
-# --- SECTION 1: STEP-BY-STEP EXPLANATION (FOR COMPLETE BEGINNERS) ---
+# --- SECTION 1: STEP-BY-STEP EXPLANATION ---
 st.subheader("🔍 Step-by-Step: How This Cools a Server Without a Pump")
 
 c1, c2, c3, c4 = st.columns(4)
