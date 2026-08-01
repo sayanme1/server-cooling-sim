@@ -1,88 +1,184 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
+import streamlit.components.v1 as components
 
 # --- PAGE SETUP ---
-st.set_page_config(page_title="Passive Server Cooling Simulation", layout="wide")
-st.title("⚡ Interactive Passive Server Cooling Simulation")
-st.caption("Class 11 Physics Model: Convection, Latent Heat, and Buoyancy-Driven Heat Transfer")
+st.set_page_config(page_title="Passive Server Cooling Model", layout="wide", page_icon="⚡")
+
+st.title("⚡ Passive Server Cooling: Loop Thermosyphon Model")
+st.caption("A Class 11 & Class 12 Physics Simulation: Convection, Latent Heat, and Joule Heating")
 
 # --- SIDEBAR CONTROLS ---
-st.sidebar.header("🎛️ Interactive Controls")
-cpu_power = st.sidebar.slider("CPU Heat Load (Watts)", min_value=50, max_value=300, value=150, step=10)
-ambient_temp = st.sidebar.slider("Ambient Air Temp (°C)", min_value=15, max_value=40, value=25, step=1)
-fluid_type = st.sidebar.selectbox("Working Fluid", ["Novec 7100 (Low Boiling Point)", "Water (High Latent Heat)"])
+st.sidebar.header("🎛️ Simulation Controls")
+cpu_power = st.sidebar.slider("CPU Heat Power (Watts)", min_value=50, max_value=300, value=180, step=10)
+ambient_temp = st.sidebar.slider("Room / Ambient Temp (°C)", min_value=15, max_value=40, value=25, step=1)
+fluid = st.sidebar.radio("Working Fluid", ["Novec 7100 (Boils @ 61°C)", "Pure Water (Boils @ 100°C)"])
 
-# Fluid Properties
-if "Novec" in fluid_type:
-    boiling_point = 61.0  # °C
-    latent_heat = 112     # kJ/kg
-    thermal_res = 0.18    # °C/W
+# Physics Constants
+if "Novec" in fluid:
+    boil_pt = 61.0      # °C
+    latent_heat = 112   # kJ/kg
+    thermal_res = 0.16  # °C/W
 else:
-    boiling_point = 100.0 # °C
-    latent_heat = 2260    # kJ/kg
-    thermal_res = 0.28    # °C/W
+    boil_pt = 100.0     # °C
+    latent_heat = 2260  # kJ/kg
+    thermal_res = 0.28  # °C/W
 
-# --- CALCULATIONS ---
-steady_state_temp = ambient_temp + (cpu_power * thermal_res)
-is_boiling = steady_state_temp >= boiling_point
+# Calculated Physics Values
+cpu_temp = ambient_temp + (cpu_power * thermal_res)
+is_boiling = cpu_temp >= boil_pt
+bubble_speed = int(np.clip(cpu_power / 30, 2, 10)) if is_boiling else 1
 
-# --- METRICS DISPLAY ---
+# Top Summary Cards
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("Est. CPU Temp", f"{steady_state_temp:.1f} °C")
-col2.metric("Boiling Point", f"{boiling_point:.1f} °C")
-col3.metric("System State", "2-Phase (Boiling)" if is_boiling else "1-Phase (Liquid)")
-col4.metric("Pump Power", "0 Watts (Passive)")
+col1.metric("CPU Temperature", f"{cpu_temp:.1f} °C", delta=f"{cpu_temp - ambient_temp:.1f} °C over room")
+col2.metric("Boiling Threshold", f"{boil_pt}°C")
+col3.metric("Cooling Mechanism", "2-Phase (Boiling)" if is_boiling else "1-Phase (Liquid)")
+col4.metric("Pump Electricity", "0 Watts (100% Passive)")
 
 st.divider()
 
-# --- VISUALIZATION COLUMNS ---
-viz_col1, viz_col2 = st.columns([1, 1])
+# --- MAIN INTERFACE TABS ---
+tab1, tab2, tab3 = st.tabs(["🖼️ Live Visual Model", "📊 Thermal Graph", "📚 Class 11 & 12 Physics Theory"])
 
-with viz_col1:
-    st.subheader("📊 Thermal Stabilization Over Time")
+# ==================== TAB 1: VISUAL ANIMATION ====================
+with tab1:
+    st.subheader("🔄 Real-Time Fluid & Heat Flow Animation")
     
-    time_points = np.linspace(0, 60, 100)
-    temp_curve = ambient_temp + (steady_state_temp - ambient_temp) * (1 - np.exp(-time_points / 12))
+    # HTML5 Canvas Script for Fluid Animation
+    animation_html = f"""
+    <div style="text-align: center; background-color: #0e1117; padding: 15px; border-radius: 10px;">
+        <canvas id="coolingCanvas" width="600" height="400" style="border: 2px solid #31333F; border-radius: 8px;"></canvas>
+    </div>
+    <script>
+        const canvas = document.getElementById('coolingCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let bubbleY = 310;
+        let dropY = 90;
+        const isBoiling = {str(is_boiling).lower()};
+        const speed = {bubble_speed};
+        const power = {cpu_power};
+
+        function drawLoop() {{
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // --- 1. TOP RADIATOR / CONDENSER ---
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(150, 40, 300, 50);
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText('TOP RADIATOR / CONDENSER (Heat Released to Room)', 160, 70);
+
+            // --- 2. BOTTOM EVAPORATOR / CPU ---
+            ctx.fillStyle = isBoiling ? '#7f1d1d' : '#334155';
+            ctx.fillRect(200, 310, 200, 60);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 15px Arial';
+            ctx.fillText('SERVER CPU (Heat Source: ' + power + 'W)', 210, 345);
+
+            // --- 3. PIPES ---
+            ctx.lineWidth = 12;
+            
+            // Left Pipe (Vapor Line Up)
+            ctx.strokeStyle = isBoiling ? '#ef4444' : '#64748b';
+            ctx.beginPath();
+            ctx.moveTo(200, 310);
+            ctx.lineTo(200, 90);
+            ctx.stroke();
+
+            // Right Pipe (Liquid Return Down)
+            ctx.strokeStyle = '#3b82f6';
+            ctx.beginPath();
+            ctx.moveTo(400, 90);
+            ctx.lineTo(400, 310);
+            ctx.stroke();
+
+            // --- 4. ANIMATED PARTICLES ---
+            if (isBoiling) {{
+                // Rising Red Vapor Bubbles
+                ctx.fillStyle = '#fca5a5';
+                ctx.beginPath();
+                ctx.arc(200, bubbleY, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(200, (bubbleY + 80) % 220 + 90, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                bubbleY -= speed;
+                if (bubbleY < 90) bubbleY = 310;
+            }}
+
+            // Falling Blue Liquid Drops
+            ctx.fillStyle = '#93c5fd';
+            ctx.beginPath();
+            ctx.arc(400, dropY, 7, 0, Math.PI * 2);
+            ctx.fill();
+
+            dropY += speed * 0.8;
+            if (dropY > 310) dropY = 90;
+
+            requestAnimationFrame(drawLoop);
+        }}
+        drawLoop();
+    </script>
+    """
+    components.html(animation_html, height=440)
     
-    fig, ax = plt.subplots(figsize=(6, 4))
-    ax.plot(time_points, temp_curve, color="#ff4b4b", linewidth=2.5, label="CPU Temp (°C)")
-    ax.axhline(boiling_point, color="#31333F", linestyle="--", label=f"Boiling Pt ({boiling_point}°C)")
-    ax.axhline(ambient_temp, color="#00d26a", linestyle=":", label=f"Ambient ({ambient_temp}°C)")
+    if is_boiling:
+        st.success("🔥 **2-Phase Boiling Mode Active:** Heat energy from the CPU is turning liquid into vapor bubbles. As bubbles rise, they carry heat to the top radiator automatically without needing an electric pump!")
+    else:
+        st.info("💧 **Single-Phase Liquid Mode:** Temperature is below boiling point. Heat transfers purely through slow liquid expansion.")
+
+# ==================== TAB 2: GRAPH ====================
+with tab2:
+    st.subheader("📊 CPU Temperature Stabilization Curve")
+    
+    t = np.linspace(0, 60, 100)
+    temp_curve = ambient_temp + (cpu_temp - ambient_temp) * (1 - np.exp(-t / 10))
+    
+    fig, ax = plt.subplots(figsize=(8, 3.5))
+    ax.plot(t, temp_curve, color="#ef4444", linewidth=3, label="CPU Temperature (°C)")
+    ax.axhline(boil_pt, color="#f59e0b", linestyle="--", label=f"Boiling Pt ({boil_pt}°C)")
+    ax.axhline(ambient_temp, color="#10b981", linestyle=":", label=f"Room Temp ({ambient_temp}°C)")
     
     ax.set_xlabel("Time (seconds)")
     ax.set_ylabel("Temperature (°C)")
-    ax.set_ylim(10, 110)
+    ax.set_ylim(10, 115)
     ax.legend(loc="lower right")
-    ax.grid(True, alpha=0.3)
+    ax.grid(True, alpha=0.2)
     st.pyplot(fig)
 
-with viz_col2:
-    st.subheader("🔄 Thermosyphon Loop Status")
+# ==================== TAB 3: VIVA & PHYSICS THEORY ====================
+with tab3:
+    st.subheader("📖 Physics Syllabus Integration (Class 11 & Class 12)")
     
-    st.markdown(f"""
-    ```text
-         ┌──────────────────────────────────────┐
-         │     TOP RADIATOR / CONDENSER         │  <-- Heat rejected ({ambient_temp}°C)
-         └──────────────────┬───────────────────┘
-                            │
-            Vapor Rises     │    Liquid Falls
-            (Low Density)   │    (Gravity Return)
-                            │
-         ┌──────────────────┴───────────────────┐
-         │     CPU EVAPORATOR BLOCK             │  <-- Heat Input: {cpu_power} W
-         └──────────────────────────────────────┘
-    ```
-    """)
+    col_a, col_b = st.columns(2)
     
-    if is_boiling:
-        st.success("✅ **Active 2-Phase Mode:** Liquid is actively boiling into vapor at the CPU. Latent heat absorption is keeping the server cool!")
-    else:
-        st.info("ℹ️ **Sensible Heating Mode:** Temperature is below boiling point. Heat is transferred via liquid expansion.")
-
-st.subheader("💡 Key Physics Takeaways")
-st.markdown(f"""
-* **Latent Heat:** At {boiling_point}°C, the fluid absorbs **{latent_heat} kJ/kg** of hidden energy during phase change without raising its temperature.
-* **Buoyancy-Driven Flow:** Heating liquid lowers its density, causing vapor bubbles to rise naturally to the condenser.
-* **Zero Power Consumption:** The circulation speed automatically increases as CPU power ({cpu_power}W) increases!
-""")
+    with col_a:
+        st.markdown("### 🔹 Class 11 Physics Concepts")
+        st.markdown(f"""
+        1. **Latent Heat of Vaporization ($Q = m L_v$):**
+           * When the fluid reaches **{boil_pt}°C**, it absorbs a massive amount of hidden thermal energy (**{latent_heat} kJ/kg**) to change phase from liquid to gas without increasing temperature.
+        
+        2. **Buoyancy & Natural Convection ($F_b = \Delta \\rho \cdot g \cdot V$):**
+           * Heating lowers the density of the fluid ($\Delta \\rho$). Low-density vapor naturally rises to the top condenser, while high-density liquid falls back down under gravity.
+        
+        3. **First Law of Thermodynamics ($\Delta Q = \Delta U + \Delta W$):**
+           * Heat input $\Delta Q$ from the CPU increases the fluid's internal energy $\Delta U$ (causing phase change) and performs kinetic work $\Delta W$ moving fluid through the loop.
+        """)
+        
+    with col_b:
+        st.markdown("### 🔹 Class 12 Physics Concepts")
+        st.markdown(f"""
+        1. **Joule Heating ($P = I^2 R$):**
+           * Electric current ($I$) passing through tiny silicon transistors in server CPUs encounters internal electrical resistance ($R$), converting electrical power into massive heat waste ($P$).
+        
+        2. **Semiconductor Thermal Limits:**
+           * Transistors in microprocessors lose efficiency or fail permanently if temperatures exceed **85–90°C** due to thermal breakdown of semiconductor junctions.
+        
+        3. **Closed-Loop Fluid Analogy to Electric Circuits:**
+           * The pressure difference ($\Delta P$) driving fluid flow acts like **Voltage ($V$)**, fluid flow rate acts like **Current ($I$)**, and pipe narrowness acts like **Resistance ($R$)**.
+        """)
