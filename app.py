@@ -217,18 +217,6 @@ specific_heat = st.sidebar.slider(
     4186
 )
 
-# ============================================================
-# THERMAL MASS WITH COOLANT
-# ============================================================
-
-thermal_mass = (
-
-    fluid_volume *
-    coolant_density *
-    coolant_heat_capacity
-
-)
-
 
 thermal_conductivity = st.sidebar.slider(
     "Thermal Conductivity (W/mK)",
@@ -410,17 +398,6 @@ h = (
 
 
 # Cooling capacity
-
-heat_rejection = (
-
-    h *
-    radiator_area *
-    delta_T
-
-)
-
-
-
 # Thermal mass
 
 thermal_mass = (
