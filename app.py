@@ -7,6 +7,7 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Circle, Rectangle, FancyArrowPatch
 
 
 # ============================================================
@@ -491,6 +492,154 @@ ax.grid(True)
 
 
 st.pyplot(fig)
+
+# ============================================================
+# PART 2 - LIQUID LOOP VISUALIZATION
+# ============================================================
+
+st.divider()
+
+st.subheader(
+    "💧 Passive Cooling Loop Visualization"
+)
+
+
+fig2, ax2 = plt.subplots(
+    figsize=(8,5)
+)
+
+
+# ------------------------------------------------------------
+# LOOP GEOMETRY
+# ------------------------------------------------------------
+
+loop_x = [
+    0.2,
+    0.8,
+    0.8,
+    0.2,
+    0.2
+]
+
+
+loop_y = [
+    0.2,
+    0.2,
+    0.8,
+    0.8,
+    0.2
+]
+
+
+ax2.plot(
+    loop_x,
+    loop_y,
+    linewidth=8
+)
+
+
+
+# ------------------------------------------------------------
+# HEAT SOURCE
+# ------------------------------------------------------------
+
+heat_block = Rectangle(
+    (0.05,0.4),
+    0.12,
+    0.25
+)
+
+
+ax2.add_patch(
+    heat_block
+)
+
+
+ax2.text(
+    0.05,
+    0.35,
+    "🔥 HOT\nSOURCE",
+    fontsize=10
+)
+
+
+
+# ------------------------------------------------------------
+# RADIATOR
+# ------------------------------------------------------------
+
+radiator = Rectangle(
+    (0.83,0.4),
+    0.12,
+    0.25
+)
+
+
+ax2.add_patch(
+    radiator
+)
+
+
+ax2.text(
+    0.78,
+    0.35,
+    "❄️ RADIATOR",
+    fontsize=10
+)
+
+
+
+# ------------------------------------------------------------
+# FLOW ARROW
+# ------------------------------------------------------------
+
+arrow = FancyArrowPatch(
+    (0.5,0.85),
+    (0.75,0.85),
+    arrowstyle="->",
+    mutation_scale=25
+)
+
+
+ax2.add_patch(
+    arrow
+)
+
+
+ax2.text(
+    0.35,
+    0.92,
+    f"Natural Flow: {buoyancy_velocity:.3f} m/s"
+)
+
+
+
+# ------------------------------------------------------------
+# DISPLAY SETTINGS
+# ------------------------------------------------------------
+
+ax2.set_xlim(
+    0,
+    1
+)
+
+ax2.set_ylim(
+    0,
+    1
+)
+
+
+ax2.axis(
+    "off"
+)
+
+
+ax2.set_title(
+    "Buoyancy Driven Liquid Circulation"
+)
+
+
+st.pyplot(fig2)
 
 
 
