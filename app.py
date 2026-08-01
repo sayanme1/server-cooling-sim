@@ -203,65 +203,206 @@ fluid_volume = st.sidebar.slider(
 
 
 # ============================================================
-# BASIC CONVECTION MODEL
+# PART 1B - PASSIVE CONVECTION PHYSICS ENGINE
 # ============================================================
 
-time = np.linspace(0, 600, 200)
+
+st.sidebar.divider()
+st.sidebar.subheader("🧪 Fluid Properties")
 
 
-# simplified thermal response
-thermal_mass = fluid_volume * 4186
-
-cooling_constant = 0.002
-
-
-temperature = (
-    ambient_temperature
-    +
-    (fluid_temperature - ambient_temperature)
-    *
-    np.exp(-cooling_constant * time)
-    +
-    (
-        heat_input /
-        thermal_mass
-    )
-    *
-    (1 - np.exp(-cooling_constant*time))
-    * 100
+fluid_density = st.sidebar.slider(
+    "Fluid Density (kg/m³)",
+    min_value=700,
+    max_value=1200,
+    value=1000
 )
 
 
+specific_heat = st.sidebar.slider(
+    "Specific Heat (J/kg·K)",
+    min_value=1000,
+    max_value=5000,
+    value=4186
+)
+
+
+thermal_conductivity = st.sidebar.slider(
+    "Fluid Thermal Conductivity (W/mK)",
+    min_value=0.05,
+    max_value=1.0,
+    value=0.60
+)
+
+
+loop_height = st.sidebar.slider(
+    "Vertical Loop Height (m)",
+    min_value=0.1,
+    max_value=5.0,
+    value=1.0
+)
+
+
+radiator_area = st.sidebar.slider(
+    "Radiator Surface Area (m²)",
+    min_value=0.05,
+    max_value=5.0,
+    value=1.0
+)
+
+
+# ------------------------------------------------------------
+# PHYSICAL CONSTANTS
+# ------------------------------------------------------------
+
+gravity = 9.81
+
+thermal_expansion = 0.00021
+
+
+# ------------------------------------------------------------
+# TEMPERATURE DIFFERENCE
+# ------------------------------------------------------------
+
+delta_T = max(
+    fluid_temperature - ambient_temperature,
+    0.1
+)
+
+
+# ------------------------------------------------------------
+# BUOYANCY FLOW ESTIMATION
+# ------------------------------------------------------------
+
+buoyancy_velocity = np.sqrt(
+    gravity *
+    thermal_expansion *
+    delta_T *
+    loop_height
+)
+
+
+# ------------------------------------------------------------
+# REYNOLDS NUMBER
+# ------------------------------------------------------------
+
+characteristic_length = loop_height
+
+kinematic_viscosity = 1e-6
+
+
+Reynolds = (
+    buoyancy_velocity *
+    characteristic_length /
+    kinematic_viscosity
+)
+
+
+# ------------------------------------------------------------
+# NUSSELT APPROXIMATION
+# ------------------------------------------------------------
+
+if Reynolds < 2300:
+
+    Nusselt = (
+        0.54 *
+        Reynolds**0.25
+    )
+
+else:
+
+    Nusselt = (
+        0.15 *
+        Reynolds**0.33
+    )
+
+
+# ------------------------------------------------------------
+# CONVECTION COEFFICIENT
+# ------------------------------------------------------------
+
+h = (
+    Nusselt *
+    thermal_conductivity /
+    characteristic_length
+)
+
+
+# ------------------------------------------------------------
+# HEAT REJECTION CAPACITY
+# ------------------------------------------------------------
+
+heat_rejection = (
+    h *
+    radiator_area *
+    delta_T
+)
+
+
+# ------------------------------------------------------------
+# THERMAL MASS
+# ------------------------------------------------------------
+
+thermal_mass = (
+    fluid_volume *
+    fluid_density *
+    specific_heat
+)
+
+
+# ------------------------------------------------------------
+# TIME SIMULATION
+# ------------------------------------------------------------
+
+time = np.linspace(
+    0,
+    1800,
+    300
+)
+
+
+temperature = np.zeros_like(time)
+
+temperature[0] = fluid_temperature
+
+
+for i in range(1, len(time)):
+
+    heat_loss = (
+        heat_rejection *
+        (
+            temperature[i-1]
+            -
+            ambient_temperature
+        )
+        /
+        delta_T
+    )
+
+
+    net_power = (
+        heat_input -
+        heat_loss
+    )
+
+
+    temperature[i] = (
+        temperature[i-1]
+        +
+        (
+            net_power /
+            thermal_mass
+        )
+        *
+        (
+            time[i]
+            -
+            time[i-1]
+        )
+    )
+
+
 current_temperature = temperature[-1]
-
-
-# ============================================================
-# LIVE TELEMETRY
-# ============================================================
-
-a, b, c = st.columns(3)
-
-
-with a:
-    st.metric(
-        "Current Fluid Temperature",
-        f"{current_temperature:.2f} °C"
-    )
-
-
-with b:
-    st.metric(
-        "Heat Input",
-        f"{heat_input} W"
-    )
-
-
-with c:
-    st.metric(
-        "Thermal Mass",
-        f"{thermal_mass/1000:.2f} kJ/K"
-    )
-
 
 # ============================================================
 # TEMPERATURE GRAPH
